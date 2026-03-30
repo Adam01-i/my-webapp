@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon App - MySQL + Node.js + Python</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Tableau de bord des APIs</h1>
+        <div class="cards">
+            <div class="card node">
+                <h2>🟢 API Node.js</h2>
+                <p id="node-status">Chargement...</p>
+                <pre id="node-data"></pre>
+            </div>
+            <div class="card python">
+                <h2>🐍 API Python</h2>
+                <p id="python-status">Chargement...</p>
+                <pre id="python-data"></pre>
+            </div>
+        </div>
+        <div class="footer">
+            <p>✨ Données provenant de MySQL (persistant) ✨</p>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
