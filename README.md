@@ -290,44 +290,37 @@ on:
     branches: [ main, master ]
 
 jobs:
-  build-nodejs:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install OpenShift CLI
-        uses: redhat-actions/openshift-tools-installer@v1
-        with:
-          oc: latest
-      - name: Start Node.js build
-        run: |
-          oc login --token=${{ secrets.OPENSHIFT_TOKEN }} --server=${{ secrets.OPENSHIFT_SERVER }}
-          oc start-build node-api --follow -n ${{ secrets.OPENSHIFT_NAMESPACE }}
 
-  build-python:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
       - name: Install OpenShift CLI
         uses: redhat-actions/openshift-tools-installer@v1
         with:
           oc: latest
-      - name: Start Python build
-        run: |
-          oc login --token=${{ secrets.OPENSHIFT_TOKEN }} --server=${{ secrets.OPENSHIFT_SERVER }}
-          oc start-build python-api --follow -n ${{ secrets.OPENSHIFT_NAMESPACE }}
 
-  build-frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install OpenShift CLI
-        uses: redhat-actions/openshift-tools-installer@v1
-        with:
-          oc: latest
-      - name: Start frontend build
+      - name: Login OpenShift
         run: |
           oc login --token=${{ secrets.OPENSHIFT_TOKEN }} --server=${{ secrets.OPENSHIFT_SERVER }}
-          oc start-build web-frontend --follow -n ${{ secrets.OPENSHIFT_NAMESPACE }}
+
+      - name: Build Node.js
+        run: oc start-build node-api --follow -n ${{ secrets.OPENSHIFT_NAMESPACE }}
+
+      - name: Build Python
+        run: oc start-build python-api --follow -n ${{ secrets.OPENSHIFT_NAMESPACE }}
+
+      - name: Build Frontend
+        run: oc start-build web-frontend --follow -n ${{ secrets.OPENSHIFT_NAMESPACE }}
+
+      - name: Update Deployments
+        run: |
+          oc set image deploy/node-api node-api=image-registry.openshift-image-registry.svc:5000/${{ secrets.OPENSHIFT_NAMESPACE }}/node-api:latest
+          oc set image deploy/python-api python-api=image-registry.openshift-image-registry.svc:5000/${{ secrets.OPENSHIFT_NAMESPACE }}/python-api:latest
+          oc set image deploy/web-frontend web-frontend=image-registry.openshift-image-registry.svc:5000/${{ secrets.OPENSHIFT_NAMESPACE }}/web-frontend:latest
+          oc rollout restart deploy/node-api
+          oc rollout restart deploy/python-api
+          oc rollout restart deploy/web-frontend
 ```
 
 #### ⚙️ Resultats des builds
