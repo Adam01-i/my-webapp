@@ -248,7 +248,7 @@ oc create configmap frontend-files \
 
 ### 5. 🌐 Résolution des problèmes réseau
 
-#### a) NetworkPolicy interne
+#### a) NetworkPolicy interne : allow-all-internal
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -265,6 +265,27 @@ spec:
 ```
 
 ---
+
+#### b) NetworkPolicy interne : allow-from-openshift-ingress
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+ name: allow-from-openshift-ingress
+spec:
+ ingress:
+ - from:
+ - namespaceSelector:
+ matchLabels:
+ kubernetes.io/metadata.name: openshift-ingress
+ podSelector: {}
+ policyTypes:
+ - Ingress
+```
+
+---
+
 
 ### 6. 🔄 CI/CD avec GitHub Actions
 
@@ -294,14 +315,41 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install OpenShift CLI
         uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          oc: latest
       - name: Start Node.js build
         run: |
-          oc login --token=${{ secrets.OPENSHIFT_TOKEN }} \
-                   --server=${{ secrets.OPENSHIFT_SERVER }}
-          oc start-build node-api --follow \
-                   -n ${{ secrets.OPENSHIFT_NAMESPACE }}
+          oc login --token=${{ secrets.OPENSHIFT_TOKEN }} --server=${{ secrets.OPENSHIFT_SERVER }}
+          oc start-build node-api --follow -n ${{ secrets.OPENSHIFT_NAMESPACE }}
+
+  build-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install OpenShift CLI
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          oc: latest
+      - name: Start Python build
+        run: |
+          oc login --token=${{ secrets.OPENSHIFT_TOKEN }} --server=${{ secrets.OPENSHIFT_SERVER }}
+          oc start-build python-api --follow -n ${{ secrets.OPENSHIFT_NAMESPACE }}
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install OpenShift CLI
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          oc: latest
+      - name: Start frontend build
+        run: |
+          oc login --token=${{ secrets.OPENSHIFT_TOKEN }} --server=${{ secrets.OPENSHIFT_SERVER }}
+          oc start-build web-frontend --follow -n ${{ secrets.OPENSHIFT_NAMESPACE }}
 ```
 
+#### ⚙️ Resultats des builds
 ![Schéma](media/image6.png)
 
 ---
@@ -331,16 +379,20 @@ jobs:
 * **Frontend** :
   [http://web-frontend-route-adam01-i-dev.apps.rm3.7wse.p1.openshiftapps.com](http://web-frontend-route-adam01-i-dev.apps.rm3.7wse.p1.openshiftapps.com)
 
-![Schéma](media/image6.png)
+![Schéma](media/image7.png)
 
 ---
 
 ## 🧪 Tests
 
+### Commandes test des routes api ainsi que le frontend
 ```bash
 curl http://node-route-adam01-i-dev.apps.rm3.7wse.p1.openshiftapps.com
 curl http://python-route-adam01-i-dev.apps.rm3.7wse.p1.openshiftapps.com
+curl http://web-frontend-route-adam01-i-dev.apps.rm3.7wse.p1.openshiftapps.com/
 ```
+
+### Resultats des tests
 ![Schéma](media/image8.png)
 
 
