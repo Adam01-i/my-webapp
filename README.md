@@ -317,7 +317,7 @@ jobs:
         run: |
           oc set image deploy/node-api node-api=image-registry.openshift-image-registry.svc:5000/${{ secrets.OPENSHIFT_NAMESPACE }}/node-api:latest
           oc set image deploy/python-api python-api=image-registry.openshift-image-registry.svc:5000/${{ secrets.OPENSHIFT_NAMESPACE }}/python-api:latest
-          oc set image deploy/web-frontend web-frontend=image-registry.openshift-image-registry.svc:5000/${{ secrets.OPENSHIFT_NAMESPACE }}/web-frontend:latest
+          oc set image deploy/web-frontend nginx=image-registry.openshift-image-registry.svc:5000/${{ secrets.OPENSHIFT_NAMESPACE }}/web-frontend:latest
           oc rollout restart deploy/node-api
           oc rollout restart deploy/python-api
           oc rollout restart deploy/web-frontend
