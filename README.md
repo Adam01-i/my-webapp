@@ -41,25 +41,6 @@ Ce rapport détaille l'ensemble des actions menées, des problèmes rencontrés 
 
 ---
 
-## ⚙️ Étapes détaillées de réalisation
-
-### 1. 🧹 Nettoyage initial de l'environnement
-
-```bash
-oc delete route firewall-route nginx-route web-route
-oc delete svc firewall-service nginx-service mysql-service web-service
-oc delete deployment firewall-nginx web-backend
-oc delete bc web-backend-custom
-oc delete is web-backend-custom
-oc delete configmap nginx-firewall-config
-oc delete vm fedora-gray-roundworm-62--vm-bd-mysql fedora-lime-cobra-86--vm-web
-oc delete dv fedora-gray-roundworm-62--vm-bd-mysql fedora-lime-cobra-86--vm-web
-```
-
-Seuls les services système ont été conservés.
-
----
-
 ### 2. 🗄️ Déploiement de MySQL avec persistance
 
 #### 📦 PersistentVolumeClaim
