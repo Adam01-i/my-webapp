@@ -1,3 +1,4 @@
+// frontend/script.js
 async function fetchAPI(url, elementId, statusId) {
     try {
         const response = await fetch(url);

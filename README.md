@@ -111,18 +111,35 @@ oc expose deployment mysql --name=mysql-service --port=3306
 #### 🟢 Node.js (`server.js`)
 
 ```javascript
-const mysql = require('mysql2');
+// backend-node/server.js
+const mysql = require('mysql2/promise'); // promise version
 const http = require('http');
 
-const connection = mysql.createConnection({
-  host: 'mysql-service.adam01-i-dev.svc.cluster.local',
-  user: 'webuser',
-  password: 'webpass_',
-  database: 'webdb',
-  port: 3306
-});
+let dbConnectionReady = false;
 
-const server = http.createServer((req, res) => {
+async function connectWithRetry() {
+  while (!dbConnectionReady) {
+    try {
+      const connection = await mysql.createConnection({
+        host: process.env.MYSQL_SERVICE_HOST || 'mysql-service',
+        user: process.env.MYSQL_USER || 'webuser',
+        password: process.env.MYSQL_PASSWORD || 'webpass_',
+        database: process.env.MYSQL_DATABASE || 'webdb',
+        port: 3306,
+      });
+      console.log("✅ Connected to MySQL");
+      dbConnectionReady = true;
+      connection.end();
+    } catch (err) {
+      console.log("⏳ MySQL not ready, retrying in 5s...");
+      await new Promise(res => setTimeout(res, 5000));
+    }
+  }
+}
+
+connectWithRetry();
+
+const server = http.createServer(async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -133,30 +150,37 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  connection.connect(err => {
-    if (err) {
-      res.writeHead(500, {'Content-Type': 'application/json'});
-      res.end(JSON.stringify({error: "Erreur connexion DB"}));
-      return;
+  if (req.url === "/health") {
+    if (dbConnectionReady) {
+      res.writeHead(200);
+      res.end("OK");
+    } else {
+      res.writeHead(500);
+      res.end("DB not ready");
     }
+    return;
+  }
 
-    connection.query(
-      'SELECT "Connexion Node.js -> MySQL OK" as message',
-      (err, results) => {
-        if (err) {
-          res.writeHead(500);
-          res.end(JSON.stringify({error: err.message}));
-          return;
-        }
-
-        res.writeHead(200, {'Content-Type': 'application/json'});
-        res.end(JSON.stringify(results[0]));
-      }
-    );
-  });
+  try {
+    const connection = await mysql.createConnection({
+      host: process.env.MYSQL_SERVICE_HOST || 'mysql-service',
+      user: process.env.MYSQL_USER || 'webuser',
+      password: process.env.MYSQL_PASSWORD || 'webpass_',
+      database: process.env.MYSQL_DATABASE || 'webdb',
+      port: 3306,
+    });
+    const [rows] = await connection.execute('SELECT "Connexion Node.js -> MySQL OK" as message');
+    connection.end();
+    res.writeHead(200, {'Content-Type': 'application/json'});
+    res.end(JSON.stringify(rows[0]));
+  } catch (err) {
+    res.writeHead(500, {'Content-Type': 'application/json'});
+    res.end(JSON.stringify({error: err.message}));
+  }
 });
 
-server.listen(3000, "0.0.0.0", () => console.log("API running on port 3000"));
+const port = process.env.PORT || 3000;
+server.listen(port, () => console.log(`Node.js API on port ${port}`));
 ```
 
 ---
@@ -164,19 +188,21 @@ server.listen(3000, "0.0.0.0", () => console.log("API running on port 3000"));
 #### 🐍 Python (`Flask`)
 
 ```python
+# backend-python/app.py
+import os
 import pymysql
 from flask import Flask, jsonify
-from flask_cors import CORS
+from flask_cors import CORS  
 
 app = Flask(__name__)
 CORS(app)
 
 def get_db_connection():
     return pymysql.connect(
-        host='mysql-service.adam01-i-dev.svc.cluster.local',
-        user='webuser',
-        password='webpass_',
-        database='webdb',
+        host=os.environ.get('MYSQL_SERVICE_HOST', 'mysql-service'),
+        user=os.environ.get('MYSQL_USER', 'webuser'),
+        password=os.environ.get('MYSQL_PASSWORD', 'webpass_'),
+        database=os.environ.get('MYSQL_DATABASE', 'webdb'),
         port=3306,
         cursorclass=pymysql.cursors.DictCursor
     )
@@ -195,6 +221,15 @@ def index():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
+
+@app.route('/health')
+def health():
+    try:
+        conn = get_db_connection()
+        conn.close()
+        return "OK", 200
+    except:
+        return "DB not ready", 500
 ```
 
 ---

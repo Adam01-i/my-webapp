@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: node-api
+  template:
+    metadata:
+      labels:
+        app: node-api
+    spec:
+      containers:
+      - name: node-api
+        image: default-route-openshift-image-registry.apps.rm3.7wse.p1.openshiftapps.com/adam01-i-dev/node-api:latest
+        ports:
+        - containerPort: 3000
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          failureThreshold: 30
+          periodSeconds: 10

@@ -1,10 +1,11 @@
+# backend-python/app.py
 import os
 import pymysql
 from flask import Flask, jsonify
-from flask_cors import CORS  # ✅ IMPORTANT
+from flask_cors import CORS  
 
 app = Flask(__name__)
-CORS(app)  # ✅ ACTIVE CORS
+CORS(app)
 
 def get_db_connection():
     return pymysql.connect(
@@ -30,3 +31,12 @@ def index():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
+
+@app.route('/health')
+def health():
+    try:
+        conn = get_db_connection()
+        conn.close()
+        return "OK", 200
+    except:
+        return "DB not ready", 500
